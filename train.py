@@ -28,7 +28,7 @@ def total_loss(pred, mask):
     iou = 1 - (inter+1)/(union-inter+1)
     iou = iou.mean()
     return iou + 0.6*bce
-    
+
 def structure_loss(pred, mask):
     weit  = 1+5*torch.abs(F.avg_pool2d(mask, kernel_size=31, stride=1, padding=15)-mask)
     wbce  = F.binary_cross_entropy_with_logits(pred, mask, reduce='none')
@@ -70,7 +70,7 @@ def validate(model, val_loader, nums):
             #avg_mae += compute_mae(pred, mask[0])
     model.train(True)
     return (avg_mae / nums)
-    
+
 
 EXP_NAME = ''
 
@@ -89,7 +89,7 @@ def train(Dataset, Network, cfg):
     data = Dataset.Data(cfg)
     loader = DataLoader(data, collate_fn=data.collate, batch_size=cfg.batch, shuffle=True, num_workers=8)
     ## val dataloader
-    val_cfg = Dataset.Config(datapath='/home/crh/MirrorDataset/MSD', mode='test')
+    val_cfg = Dataset.Config(dataset='MSD', datapath='../DATA/MSD', mode='test')
     val_data = Dataset.Data(val_cfg)
     val_loader = DataLoader(val_data, batch_size=1, shuffle=False, num_workers=8)
     min_mae = 1.0
@@ -127,7 +127,7 @@ def train(Dataset, Network, cfg):
             loss1 = structure_loss(out1, mask)
             loss_edge = bce_loss(out_edge1, edge)
             loss2 = structure_loss(out2, mask)
-  
+
             loss3 = structure_loss(out3, mask)
 
             loss4 = structure_loss(out4, mask)
@@ -135,12 +135,12 @@ def train(Dataset, Network, cfg):
             loss = loss1 + loss_edge + loss2/2 + loss3/4 + loss4/8 + loss5/16
 
             optimizer.zero_grad()
-            
+
             with amp.scale_loss(loss, optimizer) as scale_loss:
                 scale_loss.backward()
             optimizer.step()
 
-            
+
 
             ## log
             global_step += 1
@@ -161,12 +161,12 @@ def train(Dataset, Network, cfg):
             print('best epoch is:%d, MAE:%s' % (best_epoch, min_mae))
             if epoch == 148 or epoch == 149:
                 torch.save(net.state_dict(), cfg.savepath + '/model-' + str(epoch + 1))
-        
+
         #scheduler.step()
 
 if __name__ == '__main__':
-    
+
     EXP_NAME = 'check-msd'
-    from Net import Net
-    cfg = dataset.Config(dataset='MSD', datapath='/home/crh/MirrorDataset/MSD', savepath=f'./{EXP_NAME}/', mode='train', batch=12, lr=0.01, momen=0.9, decay=5e-4, epoch=150)
+    from Net_Base_HCO_v2 import Net
+    cfg = dataset.Config(dataset='MSD', datapath='../DATA/MSD', savepath=f'./{EXP_NAME}/', mode='train', batch=12, lr=0.025, momen=0.9, decay=1e-4, epoch=300)
     train(dataset, Net, cfg)
